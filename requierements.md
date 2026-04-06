@@ -10,3 +10,14 @@
 - **Plazo Estimado:** Usamos la metodología ágil SCRUM con sprints de 2 a 4 semanas.
 - **Problemas encontrados:** Al no tener experiencia previa con HTML, hubo dificultades para la realización del front de la página, además de no entender cómo funcionaban los GET y POST en la aplicación.
 - **Forma de Organización del Equipo:** El equipo se juntaba a trabajar en conjunto y cada integrante aportaba ideas que luego se integraban al proyecto.
+
+## **2. Auditoría**
+
+| **Tipo de Riesgo** | **Descripción** | **Probabilidad** | **Impacto** | **Identificado por** |
+|--------------|-----------|------------|--------|---------------|
+|Humano|Falta de roles definido|Alto|Medio|Ambos|
+|Humano|Equipo de solo dos personas|Media|Muy alto|IA|
+|Técnico|Curva de arendizadeje en nuevas tecnologías|Alta|Alto|Ambos|
+|Técnico|Elección de SQLite para un sistema universitario|Media|Alto|IA|
+|Organizacional|Funcionalidades poco especificadas|Alta|Medio|IA|
+|Planificación|Incumplimiento fecha entrega por grupo reducido|Alta|Alta|Equipo|
