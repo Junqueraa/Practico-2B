@@ -29,7 +29,7 @@ Como análisis podemos ver que el equipo tiende a identificar riesgos relacionad
 
 Diagrama de Arquitectura:
 
-```text
+```mermaid
 graph TD
     Cliente["Cliente / Navegador Web"] -->|"Peticiones HTTP (GET/POST)"| Servidor["Servidor Web - Spark Java"]
     
@@ -43,7 +43,7 @@ graph TD
 
 Diagrama de clases:
 
-```text
+```mermaid
 classDiagram
     class PERSONA {
         -Dni: int
