@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Materias</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 700px; }
+        h2 { text-align: center; color: #333; margin-top: 0; margin-bottom: 20px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; font-size: 14px;}
+        input[type="text"], input[type="number"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccd0d5; border-radius: 6px; font-size: 14px;}
+        button { background-color: #6f42c1; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; margin-top: 10px;}
+        button:hover { background-color: #59339d; }
+        .alert { padding: 12px; margin-bottom: 20px; border-radius: 6px; text-align: center; font-size: 14px;}
+        .alert-success { background-color: #e2d9f3; color: #432874; border: 1px solid #d1c4e9; }
+        .alert-error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        .volver-link { display: block; text-align: center; margin-top: 20px; text-decoration: none; color: #0d6efd; font-size: 14px;}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Alta de Materia</h2>
+
+        {{#successMessage}}
+            <div class="alert alert-success">{{successMessage}}</div>
+        {{/successMessage}}
+        {{#errorMessage}}
+            <div class="alert alert-error">{{errorMessage}}</div>
+        {{/errorMessage}}
+
+        <form action="/materias" method="POST">
+            <div class="form-group">
+                <label for="cod_materia">Código de Materia:</label>
+                <input type="text" id="cod_materia" name="cod_materia" placeholder="Ej: IS-001" required>
+            </div>
+            <div class="form-group">
+                <label for="nombre_materia">Nombre de la Materia:</label>
+                <input type="text" id="nombre_materia" name="nombre_materia" placeholder="Ej: Análisis y Diseño de Algoritmos I" required>
+            </div>
+            <button type="submit">Guardar Materia</button>
+        </form>
+
+        <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+        
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;">
+            <thead>
+                <tr style="background-color: #6f42c1; color: white;">
+                    <th style="padding: 10px; border: 1px solid #ddd;">Código</th>
+                    <th style="padding: 10px; border: 1px solid #ddd;">Nombre</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#materias}}
+                <tr style="text-align: center; background-color: #fff;">
+                    <td style="padding: 10px; border: 1px solid #ddd;">{{cod_materia}}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; text-align: left;">{{nombre_materia}}</td>
+                </tr>
+                {{/materias}}
+            </tbody>
+        </table>
+
+        <a href="/dashboard" class="volver-link">← Volver al Panel de Control</a>
+    </div>
+</body>
+</html>

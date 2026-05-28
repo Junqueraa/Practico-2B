@@ -18,8 +18,13 @@ import java.util.Map; // Interfaz Map, utilizada para Map.of() o HashMap.
 
 // Importaciones de clases del proyecto
 import com.is1.proyecto.config.DBConfigSingleton; // Clase Singleton para la configuración de la base de datos.
-import com.is1.proyecto.models.User; // Modelo de ActiveJDBC que representa la tabla 'users'.
+import com.is1.proyecto.models.User;
+import com.is1.proyecto.models.Profesor; // Modelo de ActiveJDBC que representa la tabla 'users'.
+import com.is1.proyecto.models.Materia;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.io.IOException;
 
 /**
  * Clase principal de la aplicación Spark.
@@ -41,30 +46,53 @@ public class App {
         // Obtener la instancia única del singleton de configuración de la base de datos.
         DBConfigSingleton dbConfig = DBConfigSingleton.getInstance();
 
-        // --- Filtro 'before' para gestionar la conexión a la base de datos ---
-        // Este filtro se ejecuta antes de cada solicitud HTTP.
+        // --- INICIALIZACIÓN DE LA BASE DE DATOS ---
+        // Se ejecuta una sola vez al arrancar el servidor
+        try {
+            Base.open(dbConfig.getDriver(), dbConfig.getDbUrl(), dbConfig.getUser(), dbConfig.getPass());
+            System.out.println("DEBUG: Ejecutando scheme.sql para crear tablas...");
+            
+            // Lee el contenido completo del archivo scheme.sql
+            String schemaSql = new String(Files.readAllBytes(Paths.get("src/main/resources/scheme.sql")));
+            
+            // Ejecuta el script SQL
+            Base.exec(schemaSql);
+            System.out.println("DEBUG: Tablas creadas/reiniciadas correctamente.");
+            
+        } catch (IOException e) {
+            System.err.println("Error leyendo scheme.sql: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Error ejecutando scheme.sql en la BD: " + e.getMessage());
+        } finally {
+            Base.close();
+        }
+        // ------------------------------------------
+
+       // --- Filtro 'before' para gestionar la conexión a la base de datos ---
         before((req, res) -> {
             try {
-                // Abre una conexión a la base de datos utilizando las credenciales del singleton.
-                Base.open(dbConfig.getDriver(), dbConfig.getDbUrl(), dbConfig.getUser(), dbConfig.getPass());
-                System.out.println(req.url());
+                // SOLO abrimos la conexión si el hilo actual NO tiene una abierta
+                if (!Base.hasConnection()) {
+                    Base.open(dbConfig.getDriver(), dbConfig.getDbUrl(), dbConfig.getUser(), dbConfig.getPass());
+                }
+                System.out.println("Ruta solicitada: " + req.url());
 
             } catch (Exception e) {
-                // Si ocurre un error al abrir la conexión, se registra y se detiene la solicitud
-                // con un código de estado 500 (Internal Server Error) y un mensaje JSON.
                 System.err.println("Error al abrir conexión con ActiveJDBC: " + e.getMessage());
-                halt(500, "{\"error\": \"Error interno del servidor: Fallo al conectar a la base de datos.\"}" + e.getMessage());
+                halt(500, "{\"error\": \"Error interno del servidor: Fallo al conectar a la base de datos.\"} " + e.getMessage());
             }
         });
 
-        // --- Filtro 'after' para cerrar la conexión a la base de datos ---
-        // Este filtro se ejecuta después de que cada solicitud HTTP ha sido procesada.
-        after((req, res) -> {
+        // --- Filtro 'afterAfter' para cerrar la conexión a la base de datos ---
+        // Usamos afterAfter en lugar de after porque este se ejecuta SIEMPRE, 
+        // incluso si la página tira un error 500 o hace un 'halt'.
+        afterAfter((req, res) -> {
             try {
-                // Cierra la conexión a la base de datos para liberar recursos.
-                Base.close();
+                // SOLO cerramos la conexión si efectivamente hay una abierta
+                if (Base.hasConnection()) {
+                    Base.close();
+                }
             } catch (Exception e) {
-                // Si ocurre un error al cerrar la conexión, se registra.
                 System.err.println("Error al cerrar conexión con ActiveJDBC: " + e.getMessage());
             }
         });
@@ -117,6 +145,138 @@ public class App {
             // 3. Renderiza la plantilla del dashboard con el nombre de usuario.
             return new ModelAndView(model, "dashboard.mustache");
         }, new MustacheTemplateEngine()); // Especifica el motor de plantillas para esta ruta.
+
+        // GET: Muestra la pantalla para cargar un nuevo profesor y la lista
+        get("/profesores", (req, res) -> {
+            Map<String, Object> model = new HashMap<>();
+            
+            // 1. Verificamos si el usuario está logueado
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            if (loggedIn == null || !loggedIn) {
+                res.redirect("/login?error=Debes iniciar sesión primero.");
+                return null;
+            }
+
+            // 2. Capturamos los mensajes de la URL (éxito o error)
+            String successMessage = req.queryParams("message");
+            if (successMessage != null && !successMessage.isEmpty()) {
+                model.put("successMessage", successMessage);
+            }
+
+            String errorMessage = req.queryParams("error");
+            if (errorMessage != null && !errorMessage.isEmpty()) {
+                model.put("errorMessage", errorMessage);
+            }
+
+            // 3. Buscamos todos los profesores y los adaptamos para Mustache
+            java.util.List<Profesor> listaProfesores = Profesor.findAll();
+            java.util.List<java.util.Map<String, Object>> profesoresMap = new java.util.ArrayList<>();
+            
+            for (Profesor p : listaProfesores) {
+                profesoresMap.add(p.toMap()); // La magia para que Mustache los lea
+            }
+            
+            model.put("profesores", profesoresMap);
+
+            // 4. Renderizamos la vista
+            return new ModelAndView(model, "profesores.mustache");
+        }, new MustacheTemplateEngine());
+
+
+        // POST: Procesa el formulario y guarda al profesor en la base de datos
+        post("/profesores", (req, res) -> {
+            String dni = req.queryParams("dni");
+            String nombre = req.queryParams("nombre_y_apellido");
+            String telefono = req.queryParams("telefono");
+            String correo = req.queryParams("correo");
+
+            // Validación muy básica
+            if (dni == null || dni.isEmpty() || nombre == null || nombre.isEmpty()) {
+                res.redirect("/profesores?error=El DNI y el Nombre son obligatorios.");
+                return null; // Usamos PRG (Post/Redirect/Get)
+            }
+
+            try {
+                // Instanciamos el modelo de ActiveJDBC
+                Profesor prof = new Profesor();
+                prof.set("dni", dni);
+                prof.set("nombre_y_apellido", nombre);
+                prof.set("telefono", telefono);
+                prof.set("correo", correo);
+                
+                // Guardamos en la base de datos
+                prof.saveIt();
+
+                // Redirigimos con mensaje de éxito
+                res.redirect("/profesores?message=Profesor " + nombre + " registrado correctamente.");
+                
+            } catch (Exception e) {
+                System.err.println("Error guardando profesor: " + e.getMessage());
+                res.redirect("/profesores?error=Error interno al guardar. Revisa la consola.");
+            }
+            return null;
+        });
+
+        // --- RUTAS PARA MATERIAS ---
+        
+        // GET: Mostrar formulario y tabla de materias
+        get("/materias", (req, res) -> {
+            Map<String, Object> model = new HashMap<>();
+            
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            if (loggedIn == null || !loggedIn) {
+                res.redirect("/login?error=Debes iniciar sesión primero.");
+                return null;
+            }
+
+            String successMessage = req.queryParams("message");
+            if (successMessage != null && !successMessage.isEmpty()) {
+                model.put("successMessage", successMessage);
+            }
+            String errorMessage = req.queryParams("error");
+            if (errorMessage != null && !errorMessage.isEmpty()) {
+                model.put("errorMessage", errorMessage);
+            }
+
+            // Buscar materias y convertirlas a Map para Mustache
+            java.util.List<Materia> listaMaterias = Materia.findAll();
+            java.util.List<java.util.Map<String, Object>> materiasMap = new java.util.ArrayList<>();
+            for (Materia m : listaMaterias) {
+                materiasMap.add(m.toMap()); 
+            }
+            model.put("materias", materiasMap);
+
+            return new ModelAndView(model, "materias.mustache");
+        }, new MustacheTemplateEngine());
+
+        // POST: Guardar una nueva materia
+        // POST: Guardar una nueva materia usando los nombres exactos de la tabla
+        post("/materias", (req, res) -> {
+            String codigo = req.queryParams("cod_materia");
+            String nombre = req.queryParams("nombre_materia");
+
+            // Validación básica
+            if (codigo == null || codigo.isEmpty() || nombre == null || nombre.isEmpty()) {
+                res.redirect("/materias?error=Todos los campos son obligatorios.");
+                return null;
+            }
+
+            try {
+                Materia mat = new Materia();
+                // Usamos los nombres exactos que pidió el error anterior
+                mat.set("cod_materia", codigo);
+                mat.set("nombre_materia", nombre);
+                
+                // Guardamos en la base de datos
+                mat.saveIt();
+
+                res.redirect("/materias?message=Materia '" + nombre + "' registrada correctamente.");
+            } catch (Exception e) {
+                System.err.println("Error guardando materia: " + e.getMessage());
+                res.redirect("/materias?error=Error interno al guardar: " + e.getMessage());
+            }
+            return null;
+        });
 
         // GET: Ruta para cerrar la sesión del usuario.
         get("/logout", (req, res) -> {
