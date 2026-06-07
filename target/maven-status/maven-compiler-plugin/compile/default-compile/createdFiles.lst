@@ -1,3 +1,9 @@
-com/is1/proyecto/App.class
-com/is1/proyecto/models/User.class
-com/is1/proyecto/config/DBConfigSingleton.class
+com\is1\proyecto\App.class
+com\is1\proyecto\models\Beca.class
+com\is1\proyecto\models\Cargo.class
+com\is1\proyecto\models\Materia.class
+com\is1\proyecto\models\Alumno.class
+com\is1\proyecto\models\Rendimiento.class
+com\is1\proyecto\models\User.class
+com\is1\proyecto\config\DBConfigSingleton.class
+com\is1\proyecto\models\Profesor.class
