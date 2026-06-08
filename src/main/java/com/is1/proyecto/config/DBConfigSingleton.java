@@ -1,25 +1,23 @@
-// Archivo: com/is1/proyecto/config/DBConfigSingleton.java
 package com.is1.proyecto.config;
 
-import org.javalite.activejdbc.Base; // Necesitarás esta importación para usar Base.open y Base.close
+import org.javalite.activejdbc.Base;
 
+// Una sola instancia de config para toda la app
 public final class DBConfigSingleton {
 
     private static DBConfigSingleton instance;
 
-    // Ya no es necesario que sean final si los vas a configurar dinámicamente o mantener una sola instancia
     private final String dbUrl;
     private final String user;
     private final String pass;
     private final String driver;
 
-    // Constructor privado para evitar instanciación directa
     private DBConfigSingleton() {
-        // Configuraciones para SQLite
-        this.driver = "org.sqlite.JDBC"; // Driver JDBC para SQLite
+        this.driver = "org.sqlite.JDBC";
+        // Permite sobreescribir la URL por parámetro al correr (-Ddb.url=...)
         this.dbUrl = System.getProperty("db.url", "jdbc:sqlite:./db/dev.db");
-        this.user = ""; // SQLite no usa usuario
-        this.pass = ""; // SQLite no usa contraseña
+        this.user = "";
+        this.pass = "";
     }
 
     public static synchronized DBConfigSingleton getInstance() {
@@ -29,9 +27,7 @@ public final class DBConfigSingleton {
         return instance;
     }
 
-    // Métodos para abrir y cerrar la conexión
     public void openConnection() {
-        // Utiliza los valores de las propiedades de la clase para abrir la conexión
         Base.open(this.driver, this.dbUrl, this.user, this.pass);
     }
 
@@ -39,7 +35,6 @@ public final class DBConfigSingleton {
         Base.close();
     }
 
-    // Getters existentes
     public String getDbUrl() {
         return dbUrl;
     }
@@ -56,4 +51,3 @@ public final class DBConfigSingleton {
         return driver;
     }
 }
-

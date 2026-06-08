@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mi Perfil</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h2 { text-align: center; color: #333; margin-top: 0; margin-bottom: 30px; }
+        .field { margin-bottom: 20px; }
+        .field label { display: block; font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; margin-bottom: 6px; }
+        .field span { display: block; font-size: 16px; color: #1a202c; padding: 10px; background-color: #f7fafc; border: 1px solid #e2e8f0; border-radius: 6px; }
+        .volver-link { display: block; text-align: center; margin-top: 25px; text-decoration: none; color: #0d6efd; font-size: 14px; }
+        .volver-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Mi Perfil</h2>
+        <div class="field">
+            <label>Usuario</label>
+            <span>{{username}}</span>
+        </div>
+        <div class="field">
+            <label>Contraseña</label>
+            <span>{{password}}</span>
+        </div>
+        <a href="/dashboard" class="volver-link">← Volver al Panel de Control</a>
+    </div>
+</body>
+</html>

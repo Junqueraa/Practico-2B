@@ -1,8 +1,8 @@
 package com.is1.proyecto.models;
 
 import org.javalite.activejdbc.Model;
-import org.javalite.activejdbc.annotations.Table; // 1. Importamos la anotación
+import org.javalite.activejdbc.annotations.Table;
 
-@Table("profesores") // 2. Forzamos el nombre exacto de la tabla en SQLite
+@Table("profesores")
 public class Profesor extends Model {
 }
