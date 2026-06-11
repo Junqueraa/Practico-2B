@@ -7,6 +7,7 @@ import com.is1.proyecto.models.Alumno;
 import com.is1.proyecto.models.Beca;
 import com.is1.proyecto.models.Materia;
 import com.is1.proyecto.models.Rendimiento;
+import com.is1.proyecto.models.Inscripcion;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,24 +24,134 @@ public class AlumnoApp {
         }
     }
 
+    private static boolean isAdmin(spark.Request req) {
+        Boolean loggedIn = req.session().attribute("loggedIn");
+        String role = req.session().attribute("role");
+        return loggedIn != null && loggedIn && "admin".equals(role);
+    }
+
     public static void register() {
 
-        get("/alumnos", (req, res) -> {
-            Map<String, Object> model = new HashMap<>();
+        // ── Panel del alumno ──────────────────────────────────────────────────
+        get("/alumno/panel", (req, res) -> {
             Boolean loggedIn = req.session().attribute("loggedIn");
-            if (loggedIn == null || !loggedIn) {
-                res.redirect("/login?error=" + enc("Debes iniciar sesión primero."));
+            String role = req.session().attribute("role");
+            if (loggedIn == null || !loggedIn || !"alumno".equals(role)) {
+                res.redirect("/login?error=" + enc("Acceso no autorizado."));
                 return null;
             }
 
+            Integer alumnoId = req.session().attribute("alumnoId");
+            Alumno alumno = Alumno.findById(alumnoId);
+            if (alumno == null) {
+                res.redirect("/login?error=" + enc("Alumno no encontrado. Contacta al administrador."));
+                return null;
+            }
+
+            Map<String, Object> model = new HashMap<>();
+            model.put("nombre", alumno.get("nombre_y_apellido"));
+
+            Object trabajaVal = alumno.get("trabaja");
+            boolean trabaja = trabajaVal != null && ((Number) trabajaVal).intValue() == 1;
+            model.put("trabaja", trabaja);
+
             String successMessage = req.queryParams("message");
-            if (successMessage != null && !successMessage.isEmpty()) {
-                model.put("successMessage", successMessage);
-            }
+            if (successMessage != null && !successMessage.isEmpty()) model.put("successMessage", successMessage);
             String errorMessage = req.queryParams("error");
-            if (errorMessage != null && !errorMessage.isEmpty()) {
-                model.put("errorMessage", errorMessage);
+            if (errorMessage != null && !errorMessage.isEmpty()) model.put("errorMessage", errorMessage);
+
+            // Materias en las que ya está inscripto
+            List<Inscripcion> inscripciones = Inscripcion.where("alumno_id = ?", alumnoId);
+            List<Map<String, Object>> inscritasMap = new ArrayList<>();
+            List<Integer> inscritasIds = new ArrayList<>();
+            for (Inscripcion i : inscripciones) {
+                int mid = ((Number) i.get("materia_id")).intValue();
+                inscritasIds.add(mid);
+                Materia m = Materia.findById(mid);
+                if (m != null) inscritasMap.add(m.toMap());
             }
+            model.put("materias_inscritas", inscritasMap);
+            model.put("tiene_inscripciones", !inscritasMap.isEmpty());
+
+            // Materias disponibles para inscribirse
+            List<Materia> todasMaterias = Materia.findAll();
+            List<Map<String, Object>> disponiblesMap = new ArrayList<>();
+            for (Materia m : todasMaterias) {
+                int mid = ((Number) m.getId()).intValue();
+                if (!inscritasIds.contains(mid)) disponiblesMap.add(m.toMap());
+            }
+            model.put("materias_disponibles", disponiblesMap);
+            model.put("hay_disponibles", !disponiblesMap.isEmpty());
+
+            return new ModelAndView(model, "alumno_panel.mustache");
+        }, new MustacheTemplateEngine());
+
+        // Inscribirse a una materia
+        post("/alumno/inscribir", (req, res) -> {
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            String role = req.session().attribute("role");
+            if (loggedIn == null || !loggedIn || !"alumno".equals(role)) {
+                res.redirect("/login?error=" + enc("Acceso no autorizado."));
+                return null;
+            }
+
+            Integer alumnoId = req.session().attribute("alumnoId");
+            String materiaIdStr = req.queryParams("materia_id");
+
+            if (materiaIdStr == null || materiaIdStr.isEmpty()) {
+                res.redirect("/alumno/panel?error=" + enc("Seleccioná una materia."));
+                return null;
+            }
+
+            int materiaId = Integer.parseInt(materiaIdStr);
+            Inscripcion existing = Inscripcion.findFirst("alumno_id = ? AND materia_id = ?", alumnoId, materiaId);
+            if (existing != null) {
+                res.redirect("/alumno/panel?error=" + enc("Ya estás inscripto en esa materia."));
+                return null;
+            }
+
+            Inscripcion ins = new Inscripcion();
+            ins.set("alumno_id", alumnoId);
+            ins.set("materia_id", materiaId);
+            ins.saveIt();
+
+            res.redirect("/alumno/panel?message=" + enc("Inscripción realizada correctamente."));
+            return null;
+        });
+
+        // Actualizar estado de trabajo
+        post("/alumno/trabaja", (req, res) -> {
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            String role = req.session().attribute("role");
+            if (loggedIn == null || !loggedIn || !"alumno".equals(role)) {
+                res.redirect("/login?error=" + enc("Acceso no autorizado."));
+                return null;
+            }
+
+            Integer alumnoId = req.session().attribute("alumnoId");
+            String trabajaParam = req.queryParams("trabaja");
+            int trabajaVal = "on".equals(trabajaParam) ? 1 : 0;
+
+            Alumno alumno = Alumno.findById(alumnoId);
+            alumno.set("trabaja", trabajaVal);
+            alumno.saveIt();
+
+            res.redirect("/alumno/panel?message=" + enc("Estado de trabajo actualizado."));
+            return null;
+        });
+
+        // ── Rutas de administración (solo admin) ──────────────────────────────
+        get("/alumnos", (req, res) -> {
+            if (!isAdmin(req)) {
+                res.redirect("/login?error=" + enc("Acceso no autorizado."));
+                return null;
+            }
+
+            Map<String, Object> model = new HashMap<>();
+            String successMessage = req.queryParams("message");
+            if (successMessage != null && !successMessage.isEmpty()) model.put("successMessage", successMessage);
+            String errorMessage = req.queryParams("error");
+            if (errorMessage != null && !errorMessage.isEmpty()) model.put("errorMessage", errorMessage);
 
             List<Alumno> listaAlumnos = Alumno.findAll();
             List<Map<String, Object>> alumnosMap = new ArrayList<>();
@@ -71,15 +182,18 @@ public class AlumnoApp {
 
             List<Materia> listaMaterias = Materia.findAll();
             List<Map<String, Object>> materiasMap = new ArrayList<>();
-            for (Materia m : listaMaterias) {
-                materiasMap.add(m.toMap());
-            }
+            for (Materia m : listaMaterias) materiasMap.add(m.toMap());
             model.put("materias", materiasMap);
 
             return new ModelAndView(model, "alumnos.mustache");
         }, new MustacheTemplateEngine());
 
         post("/alumnos", (req, res) -> {
+            if (!isAdmin(req)) {
+                res.redirect("/login?error=" + enc("Acceso no autorizado."));
+                return null;
+            }
+
             String dni = req.queryParams("dni");
             String nombre = req.queryParams("nombre_y_apellido");
             String telefono = req.queryParams("telefono");
@@ -109,6 +223,11 @@ public class AlumnoApp {
         });
 
         post("/rendimientos", (req, res) -> {
+            if (!isAdmin(req)) {
+                res.redirect("/login?error=" + enc("Acceso no autorizado."));
+                return null;
+            }
+
             String alumnoId = req.queryParams("alumno_id");
             String materiaId = req.queryParams("materia_id");
             String nota = req.queryParams("nota");
@@ -134,8 +253,12 @@ public class AlumnoApp {
             return null;
         });
 
-        // Asigna beca al alumno si cumple las 3 condiciones
         post("/alumnos/:id/beca", (req, res) -> {
+            if (!isAdmin(req)) {
+                res.redirect("/login?error=" + enc("Acceso no autorizado."));
+                return null;
+            }
+
             int alumnoId = Integer.parseInt(req.params("id"));
             String trabaja = req.queryParams("trabaja");
 

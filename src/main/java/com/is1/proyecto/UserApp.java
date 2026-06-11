@@ -5,9 +5,13 @@ import spark.ModelAndView;
 import spark.template.mustache.MustacheTemplateEngine;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.is1.proyecto.models.User;
+import com.is1.proyecto.models.Alumno;
+import com.is1.proyecto.models.Profesor;
 import org.mindrot.jbcrypt.BCrypt;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class UserApp {
@@ -20,43 +24,83 @@ public class UserApp {
         }
     }
 
+    private static Map<String, Object> buildFormModel(String successMsg, String errorMsg) {
+        Map<String, Object> model = new HashMap<>();
+        if (successMsg != null && !successMsg.isEmpty()) model.put("successMessage", successMsg);
+        if (errorMsg != null && !errorMsg.isEmpty()) model.put("errorMessage", errorMsg);
+
+        List<Alumno> alumnos = Alumno.findAll();
+        List<Map<String, Object>> alumnosMap = new ArrayList<>();
+        for (Alumno a : alumnos) alumnosMap.add(a.toMap());
+        model.put("alumnos", alumnosMap);
+
+        List<Profesor> profesores = Profesor.findAll();
+        List<Map<String, Object>> profesoresMap = new ArrayList<>();
+        for (Profesor p : profesores) profesoresMap.add(p.toMap());
+        model.put("profesores", profesoresMap);
+
+        return model;
+    }
+
     public static void register(ObjectMapper objectMapper) {
 
         get("/user/create", (req, res) -> {
-            Map<String, Object> model = new HashMap<>();
-            String successMessage = req.queryParams("message");
-            if (successMessage != null && !successMessage.isEmpty()) {
-                model.put("successMessage", successMessage);
+            Boolean loggedIn = req.session().attribute("loggedIn");
+            String role = req.session().attribute("role");
+            if (loggedIn == null || !loggedIn || !"admin".equals(role)) {
+                res.redirect("/login?error=" + enc("Solo el administrador puede crear usuarios."));
+                return null;
             }
-            String errorMessage = req.queryParams("error");
-            if (errorMessage != null && !errorMessage.isEmpty()) {
-                model.put("errorMessage", errorMessage);
-            }
+            Map<String, Object> model = buildFormModel(req.queryParams("message"), req.queryParams("error"));
+            model.put("adminForm", true);
             return new ModelAndView(model, "user_form.mustache");
         }, new MustacheTemplateEngine());
 
         get("/user/new", (req, res) -> {
-            return new ModelAndView(new HashMap<>(), "user_form.mustache");
+            Map<String, Object> model = new HashMap<>();
+            String errorMsg = req.queryParams("error");
+            if (errorMsg != null && !errorMsg.isEmpty()) model.put("errorMessage", errorMsg);
+            return new ModelAndView(model, "user_form.mustache");
         }, new MustacheTemplateEngine());
 
         post("/user/new", (req, res) -> {
             String name = req.queryParams("name");
             String password = req.queryParams("password");
+            String roleParam = req.queryParams("role");
+            String alumnoIdParam = req.queryParams("alumno_id");
+            String profesorIdParam = req.queryParams("profesor_id");
+
+            boolean esAdmin = "admin".equals(req.session().attribute("role"));
+            String urlError   = esAdmin ? "/user/create?error="   : "/user/new?error=";
+            String urlSuccess = esAdmin ? "/user/create?message=" : "/login?message=";
 
             if (name == null || name.isEmpty() || password == null || password.isEmpty()) {
-                res.redirect("/user/create?error=" + enc("Nombre y contraseña son requeridos."));
+                res.redirect(urlError + enc("Nombre y contraseña son requeridos."));
                 return "";
             }
+
+            String role = (roleParam != null && !roleParam.isEmpty()) ? roleParam : "admin";
 
             try {
                 User ac = new User();
                 ac.set("name", name);
                 ac.set("password", BCrypt.hashpw(password, BCrypt.gensalt()));
+                ac.set("role", role);
+
+                if ("alumno".equals(role) && alumnoIdParam != null && !alumnoIdParam.isEmpty()) {
+                    ac.set("alumno_id", Integer.parseInt(alumnoIdParam));
+                } else if ("profesor".equals(role) && profesorIdParam != null && !profesorIdParam.isEmpty()) {
+                    ac.set("profesor_id", Integer.parseInt(profesorIdParam));
+                }
+
                 ac.saveIt();
-                res.redirect("/login?message=" + enc("Cuenta creada exitosamente. Ya podés iniciar sesión."));
+                res.redirect(urlSuccess + enc("Usuario '" + name + "' creado correctamente."));
                 return "";
             } catch (Exception e) {
-                res.redirect("/user/create?error=" + enc("Error interno al crear la cuenta. Intente de nuevo."));
+                String msg = e.getMessage() != null && e.getMessage().contains("UNIQUE")
+                    ? "Ya existe un usuario con ese nombre. Elegí otro."
+                    : "Error interno al crear la cuenta. Intentá de nuevo.";
+                res.redirect(urlError + enc(msg));
                 return "";
             }
         });
@@ -77,6 +121,7 @@ public class UserApp {
                 User newUser = new User();
                 newUser.set("name", name);
                 newUser.set("password", password);
+                newUser.set("role", "admin");
                 newUser.saveIt();
                 res.status(201);
                 Map<String, Object> successRes = new HashMap<>();

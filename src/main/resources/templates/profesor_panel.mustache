@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mi Panel - Profesor</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; margin: 0; padding: 40px 20px; box-sizing: border-box; }
+        .card { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 700px; }
+        h2 { text-align: center; color: #333; margin-top: 0; }
+        h3 { color: #333; margin-bottom: 12px; }
+        .welcome { text-align: center; color: #555; margin-bottom: 10px; font-size: 16px; }
+        .welcome strong { color: #0d9488; font-size: 18px; }
+        .materia-badge { text-align: center; background-color: #f0fdfa; border: 1px solid #a7f3d0; color: #0f766e; padding: 10px 20px; border-radius: 8px; font-size: 16px; font-weight: 600; margin-bottom: 30px; }
+        .no-materia { text-align: center; color: #777; font-style: italic; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; }
+        th { background-color: #0d9488; color: white; padding: 10px; border: 1px solid #ddd; text-align: left; }
+        td { padding: 10px; border: 1px solid #ddd; }
+        .badge { padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .badge-si { background-color: #d1fae5; color: #065f46; }
+        .badge-no { background-color: #f3f4f6; color: #6b7280; }
+        .empty-msg { color: #777; font-style: italic; font-size: 14px; }
+        .btn-logout { background-color: #dc2626; color: white; padding: 10px 24px; border-radius: 6px; font-weight: bold; text-decoration: none; display: inline-block; }
+        .btn-logout:hover { background-color: #b91c1c; }
+        .footer { text-align: center; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Panel del Profesor</h2>
+        <p class="welcome">Bienvenido/a, <strong>{{nombre}}</strong></p>
+
+        {{#tiene_materia}}
+        <div class="materia-badge">Materia: {{materia_nombre}}</div>
+
+        <h3>Alumnos inscriptos</h3>
+        {{#tiene_alumnos}}
+        <table>
+            <thead>
+                <tr>
+                    <th>DNI</th>
+                    <th>Nombre y Apellido</th>
+                    <th>Año Ingreso</th>
+                    <th>Trabaja</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#alumnos_inscritos}}
+                <tr>
+                    <td>{{dni}}</td>
+                    <td>{{nombre_y_apellido}}</td>
+                    <td>{{anio_ingreso_u}}</td>
+                    <td>
+                        {{#trabaja_bool}}<span class="badge badge-si">Sí</span>{{/trabaja_bool}}
+                        {{^trabaja_bool}}<span class="badge badge-no">No</span>{{/trabaja_bool}}
+                    </td>
+                </tr>
+                {{/alumnos_inscritos}}
+            </tbody>
+        </table>
+        {{/tiene_alumnos}}
+        {{^tiene_alumnos}}
+        <p class="empty-msg">Aún no hay alumnos inscriptos en esta materia.</p>
+        {{/tiene_alumnos}}
+        {{/tiene_materia}}
+
+        {{^tiene_materia}}
+        <p class="no-materia">Todavía no tenés ninguna materia asignada. Contacta al administrador.</p>
+        {{/tiene_materia}}
+
+        <div class="footer">
+            <a href="/perfil" style="display:inline-block; margin-right:16px; color:#0d6efd; text-decoration:none; font-size:14px;">Mi Perfil</a>
+            <a href="/logout" class="btn-logout">Cerrar Sesión</a>
+        </div>
+    </div>
+</body>
+</html>

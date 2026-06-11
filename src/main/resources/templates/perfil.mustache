@@ -4,28 +4,136 @@
     <meta charset="UTF-8">
     <title>Mi Perfil</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        h2 { text-align: center; color: #333; margin-top: 0; margin-bottom: 30px; }
-        .field { margin-bottom: 20px; }
-        .field label { display: block; font-size: 12px; font-weight: 600; color: #888; text-transform: uppercase; margin-bottom: 6px; }
-        .field span { display: block; font-size: 16px; color: #1a202c; padding: 10px; background-color: #f7fafc; border: 1px solid #e2e8f0; border-radius: 6px; }
-        .volver-link { display: block; text-align: center; margin-top: 25px; text-decoration: none; color: #0d6efd; font-size: 14px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; margin: 0; padding: 40px 20px; box-sizing: border-box; }
+        .card { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        h2 { text-align: center; color: #333; margin-top: 0; margin-bottom: 6px; }
+        .rol-badge { text-align: center; margin-bottom: 28px; }
+        .badge { display: inline-block; padding: 4px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+        .badge-admin { background-color: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+        .badge-alumno { background-color: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+        .badge-profesor { background-color: #f0fdfa; color: #0f766e; border: 1px solid #a7f3d0; }
+        .section-title { font-size: 13px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin: 24px 0 12px 0; padding-bottom: 6px; border-bottom: 1px solid #eee; }
+        .field { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-size: 15px; }
+        .field:last-child { border-bottom: none; }
+        .field-label { color: #6b7280; font-size: 14px; }
+        .field-value { color: #1a202c; font-weight: 500; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 28px 0; }
+        .alert { padding: 12px; margin-bottom: 20px; border-radius: 6px; text-align: center; font-size: 14px; }
+        .alert-success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+        .alert-error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+        .form-group { margin-bottom: 14px; }
+        label.form-label { display: block; margin-bottom: 5px; font-weight: 600; color: #555; font-size: 14px; }
+        input[type="password"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccd0d5; border-radius: 6px; font-size: 14px; }
+        input[type="password"]:focus { border-color: #0d6efd; outline: none; box-shadow: 0 0 0 3px rgba(13,110,253,.2); }
+        .btn-submit { background-color: #0d6efd; color: white; padding: 11px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-size: 15px; font-weight: bold; margin-top: 4px; }
+        .btn-submit:hover { background-color: #0b5ed7; }
+        .volver-link { display: block; text-align: center; margin-top: 24px; text-decoration: none; color: #0d6efd; font-size: 14px; }
         .volver-link:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
     <div class="card">
         <h2>Mi Perfil</h2>
+        <div class="rol-badge">
+            {{#esAlumno}}<span class="badge badge-alumno">{{rolLabel}}</span>{{/esAlumno}}
+            {{#esProfesor}}<span class="badge badge-profesor">{{rolLabel}}</span>{{/esProfesor}}
+            {{^esAlumno}}{{^esProfesor}}<span class="badge badge-admin">{{rolLabel}}</span>{{/esProfesor}}{{/esAlumno}}
+        </div>
+
+        {{#successMessage}}
+            <div class="alert alert-success">{{successMessage}}</div>
+        {{/successMessage}}
+        {{#errorMessage}}
+            <div class="alert alert-error">{{errorMessage}}</div>
+        {{/errorMessage}}
+
+        <!-- Datos de acceso -->
+        <div class="section-title">Datos de acceso</div>
         <div class="field">
-            <label>Usuario</label>
-            <span>{{username}}</span>
+            <span class="field-label">Usuario</span>
+            <span class="field-value">{{username}}</span>
+        </div>
+
+        <!-- Datos personales (alumno o profesor) -->
+        {{#esAlumno}}
+        <div class="section-title">Datos personales</div>
+        <div class="field">
+            <span class="field-label">Nombre y Apellido</span>
+            <span class="field-value">{{nombre}}</span>
         </div>
         <div class="field">
-            <label>Contraseña</label>
-            <span>{{password}}</span>
+            <span class="field-label">DNI</span>
+            <span class="field-value">{{dni}}</span>
         </div>
-        <a href="/dashboard" class="volver-link">← Volver al Panel de Control</a>
+        {{#telefono}}
+        <div class="field">
+            <span class="field-label">Teléfono</span>
+            <span class="field-value">{{telefono}}</span>
+        </div>
+        {{/telefono}}
+        {{#correo}}
+        <div class="field">
+            <span class="field-label">Correo</span>
+            <span class="field-value">{{correo}}</span>
+        </div>
+        {{/correo}}
+        {{#anio_ingreso}}
+        <div class="field">
+            <span class="field-label">Año de Ingreso</span>
+            <span class="field-value">{{anio_ingreso}}</span>
+        </div>
+        {{/anio_ingreso}}
+        <div class="field">
+            <span class="field-label">Trabaja</span>
+            <span class="field-value">{{trabaja_str}}</span>
+        </div>
+        {{/esAlumno}}
+
+        {{#esProfesor}}
+        <div class="section-title">Datos personales</div>
+        <div class="field">
+            <span class="field-label">Nombre y Apellido</span>
+            <span class="field-value">{{nombre}}</span>
+        </div>
+        <div class="field">
+            <span class="field-label">DNI</span>
+            <span class="field-value">{{dni}}</span>
+        </div>
+        {{#telefono}}
+        <div class="field">
+            <span class="field-label">Teléfono</span>
+            <span class="field-value">{{telefono}}</span>
+        </div>
+        {{/telefono}}
+        {{#correo}}
+        <div class="field">
+            <span class="field-label">Correo</span>
+            <span class="field-value">{{correo}}</span>
+        </div>
+        {{/correo}}
+        {{/esProfesor}}
+
+        <hr>
+
+        <!-- Cambiar contraseña -->
+        <div class="section-title">Cambiar contraseña</div>
+        <form action="/perfil/password" method="POST">
+            <div class="form-group">
+                <label class="form-label" for="current_password">Contraseña actual:</label>
+                <input type="password" id="current_password" name="current_password" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="new_password">Nueva contraseña:</label>
+                <input type="password" id="new_password" name="new_password" required minlength="6">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="confirm_password">Confirmar nueva contraseña:</label>
+                <input type="password" id="confirm_password" name="confirm_password" required minlength="6">
+            </div>
+            <button type="submit" class="btn-submit">Actualizar contraseña</button>
+        </form>
+
+        <a href="{{backUrl}}" class="volver-link">← Volver</a>
     </div>
 </body>
 </html>

@@ -1,7 +1,8 @@
 package com.is1.proyecto.models;
+
 import org.javalite.activejdbc.Model;
 import org.javalite.activejdbc.annotations.Table;
 
-@Table("cargos")
-public class Cargo extends Model {
+@Table("inscripciones")
+public class Inscripcion extends Model {
 }
